@@ -1,55 +1,73 @@
 #include <Adafruit_NeoPixel.h>
-#include "SR04.h"
+#include <NewPing.h>
 
 // Define the LED strip parameters
-#define LED_PIN     6   // The digital pin connected to the DIN of the LED strip
-#define LED_COUNT  10  // Number of LEDs in the strip
-#define TRIG_PIN 12
-#define ECHO_PIN 11
+#define LED_PIN     6    // The digital pin connected to the DIN of the LED strip
+#define LED_COUNT  150   // Number of LEDs in the strip
+#define TRIG_PIN 12     // Pin for the TRIG pin on the ultrasonic sensor
+#define ECHO_PIN 11     // Pin for the ECHO pin on the ultrasonic sensor
+#define MAX_DISTANCE 50 // Maximum distance to detect (in cm)
+#define POT_PIN     A0   // Pin where the potentiometer is connected
+
+// Create a NewPing object
+NewPing sonar(TRIG_PIN, ECHO_PIN, MAX_DISTANCE);
+
 bool light = false;
-SR04 sr04 = SR04(ECHO_PIN,TRIG_PIN);
-long a;
+bool light_show = false;
+
 // Create a NeoPixel object
 Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
 
 void setup() {
-    strip.begin();        // Initialize the strip
-    strip.show();         // Turn off all LEDs at startup
-    strip.setBrightness(50); // Set brightness (0-255)
+    Serial.begin(9600);      // Start serial communication
+    strip.begin();           // Initialize the strip
+    strip.show();            // Turn off all LEDs at startup
+    strip.setBrightness(50); // Set initial brightness (0-255)
 }
 
 void loop() {
-  a=sr04.Distance();
-  if (a < 50 and light == false) {
-    light = true;
-    rainbowCycle(10);
-    delay(1000);
-  }
-  else if (a < 50 and light == true) {
-    light = false;
-    strip.clear();
-    strip.show();
-    delay(1000);
-  }
+    // Measure distance in cm
+    long a = sonar.ping_cm();
+    Serial.println(a);  // Print the distance in cm to the serial monitor
+
+    // If distance is less than 50 cm and light is off, turn on the light
+    if (a > 0 && a < 50 && !light) {
+        light = true;
+        light_show = true;
+        rainbowCycle(10);  // Show rainbow effect
+        delay(1000);       // Wait for a second before checking again
+    }
+
+    // If distance is less than 50 cm and light is on, turn off the light
+    else if (a > 0 && a < 50 && light) {
+        light = false;
+        light_show = false;
+        strip.clear();      // Clear the LEDs
+        strip.show();       // Update the LEDs
+        delay(1000);        // Wait for a second before checking again
+    }
+
+    // Control brightness with potentiometer
+    int potValue = analogRead(POT_PIN);  // Read potentiometer value (0 to 1023)
+    int brightness = map(potValue, 0, 1023, 0, 255);  // Map to brightness range (0 to 255)
+    strip.setBrightness(brightness);   // Set the brightness
 }
 
 // Function to display a continuous rainbow effect on the LED strip
 void rainbowCycle(int wait) {
-    // Loop forever
-    for (int j = 0; j < 256; j++) {
-        // Loop through each LED in the strip
-        for (int i = 0; i < strip.numPixels(); i++) {
-            int pixelIndex = (i + j) & 255;  // Calculate the color based on the position
-            strip.setPixelColor(i, Wheel(pixelIndex));  // Set the LED to the current color in the rainbow
+    // Loop forever to create a smooth rainbow effect
+    for (int j = 0; j < 225; j+=15) {  // 256 positions in the color wheel
+        for (int i = 30; i < LED_COUNT; i++) {  // Loop through LEDs 30 to 150
+            strip.setPixelColor(i, Wheel((i + j) & 255));  // Get color based on position
         }
-        strip.show();  // Update the LED strip with the new colors
-        delay(wait);  // Pause for a short delay before changing colors
+        strip.show();  // Update the LED strip
+        delay(wait);   // Delay to control the speed of the rainbow effect
     }
 }
 
 // Function to generate rainbow colors based on the position
 uint32_t Wheel(byte WheelPos) {
-    WheelPos = 255 - WheelPos;
+    WheelPos = 255 - WheelPos;  // Reverse color wheel to make rainbow direction more natural
     if (WheelPos < 85) {
         return strip.Color(255 - WheelPos * 3, 0, WheelPos * 3);  // Red to Blue
     } else if (WheelPos < 170) {

@@ -47,23 +47,23 @@ void loop() {
         delay(1000);        // Wait for a second before checking again
     }
 
-    // Control brightness with potentiometer
-    int potValue = analogRead(POT_PIN);  // Read potentiometer value (0 to 1023)
-    int brightness = map(potValue, 0, 1023, 0, 255);  // Map to brightness range (0 to 255)
-    strip.setBrightness(brightness);   // Set the brightness
+    // // Control brightness with potentiometer
+    // int potValue = analogRead(POT_PIN);  // Read potentiometer value (0 to 1023)
+    // int brightness = map(potValue, 0, 1023, 0, 255);  // Map to brightness range (0 to 255)
+    // strip.setBrightness(brightness);   // Set the brightness
 }
 
-// Function to display a continuous rainbow effect on the LED strip
 void rainbowCycle(int wait) {
-    // Loop forever to create a smooth rainbow effect
-    for (int j = 0; j < 225; j+=15) {  // 256 positions in the color wheel
-        for (int i = 30; i < LED_COUNT; i++) {  // Loop through LEDs 30 to 150
-            strip.setPixelColor(i, Wheel((i + j) & 255));  // Get color based on position
-        }
+  for (int j = 0; j <= 225; j += 15) {
+    for (int i = 30; i < LED_COUNT; i++) {  // Loop through each LED one at a time
+        strip.setPixelColor(i, Wheel(((i+j)* 256 / LED_COUNT) & 255));  // Set color for this LED
         strip.show();  // Update the LED strip
-        delay(wait);   // Delay to control the speed of the rainbow effect
+        delay(wait);   // Delay to create sequential effect
     }
+  }
+    
 }
+
 
 // Function to generate rainbow colors based on the position
 uint32_t Wheel(byte WheelPos) {
